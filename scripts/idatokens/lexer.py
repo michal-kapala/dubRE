@@ -154,6 +154,10 @@ class StringLexer:
       else:
         # handle special characters
         match cur:
+          # the space
+          case " ":
+            token_str += self.consume()
+            metatokens.append(MetaToken(token_str, MetaTokenType.SPACE))
           # the angles
           case "<":
             token_str += self.consume()
