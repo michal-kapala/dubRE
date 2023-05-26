@@ -9,7 +9,7 @@ def isletter(char: str) -> bool:
 
 class MetaTokenType(Enum):
   """Meta token types used for pre-tokenization."""
-  REGULAR = 0
+  IDENTIFIER_LIKE = 0
   """Alphanumeric or underscore"""
   SCOPE_RES = 1
   """`::`"""
@@ -138,8 +138,8 @@ class StringLexer:
       # append if alphanumeric (accepts chinese etc.)
       while not self.empty() and (isletter(cur) or cur.isdigit() or cur == "_"):
         token_str += self.consume()
-        cur = self.current()
-        print(f"token_str: {token_str}")
+        if not self.empty():
+          cur = self.current()
       # add a token
       if len(token_str) > 0:
         # mark operator keywords
@@ -150,7 +150,7 @@ class StringLexer:
         elif token_str == "delete":
           metatokens.append(MetaToken(token_str, MetaTokenType.DELETE))
         else:
-          metatokens.append(MetaToken(token_str, MetaTokenType.REGULAR))
+          metatokens.append(MetaToken(token_str, MetaTokenType.IDENTIFIER_LIKE))
       else:
         # handle special characters
         match cur:
@@ -164,7 +164,7 @@ class StringLexer:
           # the colon
           case ":":
             token_str += self.consume()
-            if self.next() == ":":
+            if self.current() == ":":
               token_str += self.consume()
               metatokens.append(MetaToken(token_str, MetaTokenType.SCOPE_RES))
             else:
