@@ -1,6 +1,7 @@
 import os, sys, getopt
 import sqlite3
-from .idatokens.lexer import StringLexer
+from idatokens.lexer import StringLexer
+from idatokens.preparser import PreParser
 
 HELP = 'Usage:\npython tokenize_idb.py -d <database path>'
 
@@ -49,10 +50,15 @@ def tokenize(conn: sqlite3.Connection):
 
   # process strings
   lexer = StringLexer("")
+  preparser = PreParser([])
 
-  for address, string in strings:
+  for _, string in strings:
     lexer.reset(string)
+    # create metatokens
     metatokens = lexer.metatokens()
+    preparser.reset(metatokens)
+    # join operator metatokens into operator identifiers
+    metatokens = preparser.make_operator_ids()
      
   
 

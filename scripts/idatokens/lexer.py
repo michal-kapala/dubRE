@@ -83,7 +83,11 @@ class MetaTokenType(Enum):
   """`{`"""
   RIGHT_CURLY = 36
   """`}`"""
-  OTHER = 37
+  DEST_SCOPE_RES = 37
+  """`::~`"""
+  OPERATOR_ID = 38
+  """Full operator identifier, e.g. `operator <<`"""
+  OTHER = 39
   """Some weird non-ASCII character"""
 
 class MetaToken:
@@ -95,12 +99,15 @@ class MetaToken:
     return "{'" + self.token + "', " + self.type.name + "}"
 
 class StringLexer:
+  """Creates a list of metatokens."""
   def __init__(self, string: str) -> None:
     self.str = string
     self.pos = 0
 
-  def current(self) -> str:
+  def current(self) -> str | None:
     """Returns currently processed character."""
+    if self.pos >= len(self.str):
+      return None
     return self.str[self.pos]
     
   def next(self) -> str| None:
@@ -111,7 +118,7 @@ class StringLexer:
   
   def next_pos(self) -> int | None:
     """Returns next position or `None` if end of string was reached."""
-    if self.pos + 1 == len(self.str):
+    if self.pos + 1 >= len(self.str):
       return None
     return self.pos + 1
   
@@ -135,6 +142,8 @@ class StringLexer:
     while not self.empty():
       token_str = ""
       cur = self.current()
+      if cur == None:
+        break
       # append if alphanumeric (accepts chinese etc.)
       while not self.empty() and (isletter(cur) or cur.isdigit() or cur == "_"):
         token_str += self.consume()
@@ -170,7 +179,11 @@ class StringLexer:
             token_str += self.consume()
             if self.current() == ":":
               token_str += self.consume()
-              metatokens.append(MetaToken(token_str, MetaTokenType.SCOPE_RES))
+              if self.current() == "~":
+                token_str += self.consume()
+                metatokens.append(MetaToken(token_str, MetaTokenType.DEST_SCOPE_RES))
+              else:
+                metatokens.append(MetaToken(token_str, MetaTokenType.SCOPE_RES))
             else:
               metatokens.append(MetaToken(token_str, MetaTokenType.COLON))
           # the tilda

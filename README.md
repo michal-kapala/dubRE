@@ -5,7 +5,8 @@ Classification-driven function name extraction plugin for IDA Pro.
 
 - `plugins` - IDA plugin utilities for IDB information export
 
-## Dependency versions
+## Plugin dependencies
+Please note that non-plugin scripts use Python 3 syntax.
 
 | Dependency | Version |
 |---|---|
