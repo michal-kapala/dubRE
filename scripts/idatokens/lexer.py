@@ -87,7 +87,9 @@ class MetaTokenType(Enum):
   """`::~`"""
   OPERATOR_ID = 38
   """Full operator identifier, e.g. `operator <<`"""
-  OTHER = 39
+  TEMPLATE_LIKE = 39
+  """Token which could be a template argument type list."""
+  OTHER = 40
   """Some weird non-ASCII character"""
 
 class MetaToken:

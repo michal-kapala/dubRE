@@ -2,6 +2,38 @@ from idatokens.lexer import MetaToken, MetaTokenType
 from enum import Enum
 from typing import List
 
+INVALID_TEMPLATE_MTOKENS = [
+  MetaTokenType.EXCLAMATION,
+  MetaTokenType.DOT,
+  MetaTokenType.TILDA,
+  MetaTokenType.OPERATOR,
+  MetaTokenType.OPERATOR_ID,
+  MetaTokenType.EQUALS,
+  MetaTokenType.PLUS,
+  MetaTokenType.HYPHEN,
+  MetaTokenType.SLASH,
+  MetaTokenType.BACKSLASH,
+  MetaTokenType.COLON,
+  MetaTokenType.SEMICOLON,
+  MetaTokenType.QUESTION,
+  MetaTokenType.PIPE,
+  MetaTokenType.PERCENT,
+  MetaTokenType.CARET,
+  MetaTokenType.BACKTICK,
+  MetaTokenType.NEW,
+  MetaTokenType.DELETE,
+  MetaTokenType.AT,
+  MetaTokenType.HASH,
+  MetaTokenType.DOLLAR,
+  MetaTokenType.RIGHT_CURLY,
+  MetaTokenType.LEFT_CURLY,
+  MetaTokenType.QUOTE,
+  MetaTokenType.DQUOTE,
+  MetaTokenType.DEST_SCOPE_RES,
+  MetaTokenType.OTHER
+]
+"""Metatokens invalid inside of a template argument list literal."""
+
 class OperatorType(Enum):
   NEW = 0
   """`operator new`"""
@@ -294,29 +326,78 @@ class PreParser:
 
       return mtokens
 
-    
-    def tokens(self) -> List[Token]:
-      tokens = []
-      # get metatokens for a token
-      while not self.empty():
-        mtokens = []
-        cur = self.current()
-        match cur.type:
-          # case MetaTokenType.LEFT_ANGLE:
+    def get_rangle_pos(self, index: int) -> int:
+      """Returns the index of the next `>` mtoken, searching right-to-left from `index`."""
+      while index >= 0:
+          if self.mtokens[index].type == MetaTokenType.RIGHT_ANGLE:
+            return index
+          index -= 1
+      return -1
 
-          # detects templating
-          # case MetaTokenType.RIGHT_ANGLE:
+    def make_templates(self) -> List[MetaToken]:
+      """Creates `TEMPLATE_LIKE` metatokens."""
+      result = self.mtokens
+      index = len(self.mtokens) - 1
+      
+      while index >= 0:
+        right_pos = self.get_rangle_pos(index)
 
-          case MetaTokenType.IDENTIFIER_LIKE:
-            tokens.append(Token([self.consume()], TokenType.ID_LIKE))
+        # no templating (no > or not enough space to close the template expr)
+        if right_pos <= 1:
+          break
 
-          case MetaTokenType.SCOPE_RES:
-            tokens.append(Token([self.consume()], TokenType.SCOPE_RES))
+        # template args literal mtokens, stored in reverse order
+        templ_mtokens = [self.mtokens[right_pos]]
 
-          case MetaTokenType.DEST_SCOPE_RES:
-            tokens.append(Token([self.consume()], TokenType.DEST_SCOPE_RES))
+        # try parsing args literal
+        expr_depth = 1
+        # skip tokens outside of the scope (and first >)
+        index = right_pos - 1
 
-      return tokens
+        while index >= 0 and expr_depth > 0:
+          match self.mtokens[index].type:
+            # scope tokens
+            case MetaTokenType.LEFT_ANGLE:
+              templ_mtokens.append(self.mtokens[index])
+              expr_depth -= 1
+              if expr_depth == 0:
+                break
+            case MetaTokenType.RIGHT_ANGLE:
+              templ_mtokens.append(self.mtokens[index])
+              expr_depth += 1
+            case _:
+              templ_mtokens.append(self.mtokens[index])
+          index -= 1
+
+        # reverse the template-like mtokens
+        templ_mtokens.reverse()
+
+        # check if parse failed (should begin with <)
+        if templ_mtokens[0].type != MetaTokenType.LEFT_ANGLE:
+          # not a template literal (end of string)
+          break
+
+        # check for invalid template arg list characters/sequences
+        invalid = False
+        for mt in templ_mtokens:
+          if mt.type in INVALID_TEMPLATE_MTOKENS:
+            invalid = True
+            break
+          
+        if invalid == True:
+          continue
+
+        # valid template literal, join mtokens
+        value = ""
+        for tmt in templ_mtokens:
+          value += tmt.token
+
+        # insert new and delete the old
+        result.insert(right_pos + 1, MetaToken(value, MetaTokenType.TEMPLATE_LIKE))
+        for idx in range(0, len(templ_mtokens)):
+          result.pop(right_pos - idx)
+
+      return result
 
     def try_parse_one_token_op(self) -> OperatorType:
       """Look forward for a one-mtoken long operator."""
