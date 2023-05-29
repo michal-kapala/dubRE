@@ -375,7 +375,9 @@ class PreParser:
         # check if parse failed (should begin with <)
         if templ_mtokens[0].type != MetaTokenType.LEFT_ANGLE:
           # not a template literal (end of string)
-          break
+          # bring position back to the token in front of failed `>` and try other `>`
+          index = right_pos - 1
+          continue
 
         # check for invalid template arg list characters/sequences
         invalid = False
