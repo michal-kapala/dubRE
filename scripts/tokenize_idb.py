@@ -1,7 +1,8 @@
 import os, sys, getopt
 import sqlite3
-from idatokens.lexer import StringLexer
+from idatokens.lexer import Lexer
 from idatokens.preparser import PreParser
+from idatokens.tokenizer import Tokenizer
 
 HELP = 'Usage:\npython tokenize_idb.py -d <database path>'
 
@@ -49,8 +50,9 @@ def tokenize(conn: sqlite3.Connection):
   check_columns(c)
 
   # process strings
-  lexer = StringLexer("")
+  lexer = Lexer("")
   preparser = PreParser([])
+  tokenizer = Tokenizer([])
 
   for _, string in strings:
     lexer.reset(string)
@@ -59,7 +61,8 @@ def tokenize(conn: sqlite3.Connection):
     preparser.reset(metatokens)
     # join operator metatokens into operator identifiers
     metatokens = preparser.make_operator_ids()
-     
+    tokenizer.reset(metatokens)
+    metatokens = tokenizer.match_patterns()
   
 
 def main(argv):

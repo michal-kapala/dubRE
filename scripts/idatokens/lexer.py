@@ -91,6 +91,14 @@ class MetaTokenType(Enum):
   """Token which could be a template argument type list."""
   OTHER = 40
   """Some weird non-ASCII character"""
+  CONSTRUCTOR_LIKE = 41
+  """Structured constructor-like name token."""
+  DESTRUCTOR_LIKE = 42
+  """Structured destructor-like name token."""
+  OPERATOR_LIKE = 43
+  """Structured operator-like name token."""
+  REGULAR_LIKE = 44
+  """Structured regular function-like name token."""
 
 class MetaToken:
   def __init__(self, token: str, type: MetaTokenType) -> None:
@@ -100,7 +108,7 @@ class MetaToken:
   def __str__(self):
     return "{'" + self.token + "', " + self.type.name + "}"
 
-class StringLexer:
+class Lexer:
   """Creates a list of metatokens."""
   def __init__(self, string: str) -> None:
     self.str = string
@@ -130,7 +138,7 @@ class StringLexer:
     return self.str[self.pos - 1]
   
   def reset(self, new_str: str) -> None:
-    """Initializes lexer with a new string."""
+    """Reinitializes lexer with a new string."""
     self.str = new_str
     self.pos = 0
 

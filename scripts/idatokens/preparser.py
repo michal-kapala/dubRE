@@ -191,7 +191,7 @@ class PreParser:
       return self.mtokens[self.pos - 1]
 
     def reset(self, new_mtokens: List[MetaToken]) -> None:
-      """Initializes parser with a new metatoken list."""
+      """Reinitializes parser with a new metatoken list."""
       self.mtokens = new_mtokens
       self.pos = 0
 
