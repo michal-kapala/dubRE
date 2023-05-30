@@ -99,6 +99,14 @@ class MetaTokenType(Enum):
   """Structured operator-like name token."""
   REGULAR_LIKE = 44
   """Structured regular function-like name token."""
+  NUMBER_LIKE = 45
+  """Number or a number-beginning identifier (invalid)."""
+  DBACKSLASH = 46
+  """`\\\\`"""
+  PATH_LIKE = 47
+  """Path-like literal."""
+  UNDEFINED = 48
+  """Joined literals which include `OTHER` type characters."""
 
 class MetaToken:
   def __init__(self, token: str, type: MetaTokenType) -> None:
@@ -169,7 +177,10 @@ class Lexer:
         elif token_str == "delete":
           metatokens.append(MetaToken(token_str, MetaTokenType.DELETE))
         else:
-          metatokens.append(MetaToken(token_str, MetaTokenType.IDENTIFIER_LIKE))
+          if token_str[0].isdigit():
+            metatokens.append(MetaToken(token_str, MetaTokenType.NUMBER_LIKE))
+          else:
+            metatokens.append(MetaToken(token_str, MetaTokenType.IDENTIFIER_LIKE))
       else:
         # handle special characters
         match cur:
@@ -263,7 +274,11 @@ class Lexer:
             metatokens.append(MetaToken(token_str, MetaTokenType.DOLLAR))
           case "\\":
             token_str += self.consume()
-            metatokens.append(MetaToken(token_str, MetaTokenType.BACKSLASH))
+            if self.current() == "\\":
+              token_str += self.consume()
+              metatokens.append(MetaToken(token_str, MetaTokenType.DBACKSLASH))
+            else:
+              metatokens.append(MetaToken(token_str, MetaTokenType.BACKSLASH))
           case "{":
             token_str += self.consume()
             metatokens.append(MetaToken(token_str, MetaTokenType.LEFT_CURLY))

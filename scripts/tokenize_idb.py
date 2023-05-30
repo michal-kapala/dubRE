@@ -62,7 +62,14 @@ def tokenize(conn: sqlite3.Connection):
     # join operator metatokens into operator identifiers
     metatokens = preparser.make_operator_ids()
     tokenizer.reset(metatokens)
+    # create full function name tokens
     metatokens = tokenizer.match_patterns()
+    tokenizer.reset(metatokens)
+    # create paths to reduce the number of tokens
+    metatokens = tokenizer.make_paths()
+    # split on unused meta tokens
+    tokenizer.reset(metatokens)
+    tokens = tokenizer.split()
   
 
 def main(argv):

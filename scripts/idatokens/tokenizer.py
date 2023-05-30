@@ -60,6 +60,18 @@ PATTERNS = [
 ]
 """Patterns for matching the names of regular functions, overloaded operators, constructors and destructors. Sorted by precedence, token types in reversed order (right-to-left)."""
 
+PATHLIKE_TYPES = [
+  MetaTokenType.SLASH,
+  MetaTokenType.BACKSLASH,
+  MetaTokenType.DBACKSLASH,
+  MetaTokenType.IDENTIFIER_LIKE,
+  MetaTokenType.REGULAR_LIKE,
+  MetaTokenType.NUMBER_LIKE,
+  MetaTokenType.DOT,
+  MetaTokenType.PATH_LIKE,
+]
+"""Meta token types accepted in path-like literals."""
+
 class Tokenizer:
   """Creates labelling-ready tokens out of preprocessed metatokens."""
   def __init__(self, metatokens) -> None:
@@ -209,3 +221,234 @@ class Tokenizer:
         break
 
     return result
+
+  def make_paths(self) -> List[MetaToken]:
+    """Creates `PATH_LIKE` metatokens."""
+    result = self.mtokens
+    index = 0
+
+    while index < len(result) - 1:
+      # starting with names
+      if result[index].type == MetaTokenType.REGULAR_LIKE:
+        # Windows paths
+        if result[index + 1].type in [MetaTokenType.BACKSLASH, MetaTokenType.DBACKSLASH]:
+          path_begin = index
+          path = []
+
+          while index < len(result):
+            if result[index].type in PATHLIKE_TYPES:
+              path.append(result[index])
+              index += 1
+            else:
+              break
+
+          # join path mtokens into path-like
+          value = ""
+          for mt in path:
+            value += mt.token
+
+          result.insert(path_begin, MetaToken(value, MetaTokenType.PATH_LIKE))
+          for idx in range(len(path)):
+            result.pop(path_begin + 1)
+
+          # restore the index
+          index = path_begin + 1
+
+        # Other paths
+        elif result[index + 1].type == MetaTokenType.SLASH:
+          path_begin = index
+          path = []
+
+          while index < len(result):
+            if result[index].type in PATHLIKE_TYPES:
+              path.append(result[index])
+              index += 1
+            else:
+              break
+          
+          # join path mtokens into path-like
+          value = ""
+          for mt in path:
+            value += mt.token
+
+          result.insert(path_begin, MetaToken(value, MetaTokenType.PATH_LIKE))
+          for idx in range(len(path)):
+            result.pop(path_begin + 1)
+
+          # restore the index
+          index = path_begin + 1
+            
+        else:
+          index += 1
+
+      # starting with (double) backslash (Windows)
+      elif result[index].type in [MetaTokenType.BACKSLASH, MetaTokenType.DBACKSLASH]:
+        # Windows paths
+        if result[index + 1].type == MetaTokenType.REGULAR_LIKE:
+          path_begin = index
+          path = []
+
+          while index < len(result):
+            if result[index].type in PATHLIKE_TYPES:
+              path.append(result[index])
+              index += 1
+            else:
+              break
+
+          # join path mtokens into path-like
+          value = ""
+          for mt in path:
+            value += mt.token
+
+          result.insert(path_begin, MetaToken(value, MetaTokenType.PATH_LIKE))
+          for idx in range(len(path)):
+            result.pop(path_begin + 1)
+
+          # restore the index
+          index = path_begin + 1
+          
+        else:
+          index += 1
+
+      # starting with slash (non-Windows)
+      elif result[index].type == MetaTokenType.SLASH:
+        if result[index + 1].type == MetaTokenType.REGULAR_LIKE:
+          path_begin = index
+          path = []
+
+          while index < len(result):
+            if result[index].type in PATHLIKE_TYPES:
+              path.append(result[index])
+              index += 1
+            else:
+              break
+
+          # join path mtokens into path-like
+          value = ""
+          for mt in path:
+            value += mt.token
+
+          result.insert(path_begin, MetaToken(value, MetaTokenType.PATH_LIKE))
+          for idx in range(len(path)):
+            result.pop(path_begin + 1)
+
+          # restore the index
+          index = path_begin + 1
+
+        else:
+          index += 1
+    
+      else:
+        index += 1
+
+    # join space-separated path-likes
+    idx = 0
+    while idx < len(result):
+      # join space-separated
+      if result[idx].type == MetaTokenType.PATH_LIKE:
+        if (idx < len(result) - 2 and
+            result[idx + 1].type == MetaTokenType.SPACE and
+            result[idx + 2].type in [MetaTokenType.PATH_LIKE, MetaTokenType.REGULAR_LIKE]):
+          value = result[idx].token + result[idx + 1].token + result[idx + 2].token
+          result.insert(idx, MetaToken(value, MetaTokenType.PATH_LIKE))
+          # 1st path-like
+          result.pop(idx + 1)
+          # space
+          result.pop(idx + 1)
+          # 2nd path-like
+          result.pop(idx + 1)
+          continue
+        elif (idx < len(result) - 1 and result[idx + 1].type == MetaTokenType.PATH_LIKE):
+          value = result[idx].token + result[idx + 1].token
+          result.insert(idx, MetaToken(value, MetaTokenType.PATH_LIKE))
+          # 1st path-like
+          result.pop(idx + 1)
+          # 2nd path-like
+          result.pop(idx + 1)
+          continue
+          
+      # join space-separated
+      elif result[idx].type == MetaTokenType.REGULAR_LIKE:
+        if (idx < len(result) - 2 and
+            result[idx + 1].type == MetaTokenType.SPACE and
+            result[idx + 2].type == MetaTokenType.PATH_LIKE):
+          value = result[idx].token + result[idx + 1].token + result[idx + 2].token
+          result.insert(idx, MetaToken(value, MetaTokenType.PATH_LIKE))
+          # 1st path-like
+          result.pop(idx + 1)
+          # space
+          result.pop(idx + 1)
+          # 2nd path-like
+          result.pop(idx + 1)
+          continue
+      idx += 1
+    
+    # join windows drive prefix and neighbour slashes
+    idx = 0
+    while idx < len(result):
+      if result[idx].type == MetaTokenType.REGULAR_LIKE:
+        if (idx < len(result) - 2 and
+            result[idx + 1].type == MetaTokenType.COLON and
+            result[idx + 2].type == MetaTokenType.PATH_LIKE):
+          value = result[idx].token + result[idx + 1].token + result[idx + 2].token
+          result.insert(idx, MetaToken(value, MetaTokenType.PATH_LIKE))
+          # 1st path-like
+          result.pop(idx + 1)
+          # space
+          result.pop(idx + 1)
+          # 2nd path-like
+          result.pop(idx + 1)
+
+      # prepend slashes to neighbouring path-likes
+      elif result[idx].type in [MetaTokenType.SLASH, MetaTokenType.BACKSLASH, MetaTokenType.DBACKSLASH]:
+        if (idx < len(result) - 1 and
+            result[idx + 1].type == MetaTokenType.PATH_LIKE):
+          value = result[idx].token + result[idx + 1].token 
+          result.insert(idx, MetaToken(value, MetaTokenType.PATH_LIKE))
+          # slash
+          result.pop(idx + 1)
+          # path-like
+          result.pop(idx + 1)
+
+      # append slashes to neighbouring path-likes
+      elif result[idx].type == MetaTokenType.PATH_LIKE:
+        if (idx < len(result) - 1 and
+            result[idx + 1].type in [MetaTokenType.SLASH, MetaTokenType.BACKSLASH, MetaTokenType.DBACKSLASH]):
+          value = result[idx].token + result[idx + 1].token 
+          result.insert(idx, MetaToken(value, MetaTokenType.PATH_LIKE))
+          # path-like
+          result.pop(idx + 1)
+          # slash
+          result.pop(idx + 1)
+
+      idx += 1
+
+    return result
+
+  def split(self) -> List[MetaToken]:
+    """Removes unused special characters and tokens."""
+    result = []
+
+    for mt in self.mtokens:
+      match mt.type:
+        case (
+        MetaTokenType.IDENTIFIER_LIKE |
+        MetaTokenType.REGULAR_LIKE | 
+        MetaTokenType.PATH_LIKE | 
+        MetaTokenType.CONSTRUCTOR_LIKE |
+        MetaTokenType.DESTRUCTOR_LIKE | 
+        MetaTokenType.OPERATOR_LIKE | 
+        MetaTokenType.OPERATOR_ID | 
+        MetaTokenType.OPERATOR | 
+        MetaTokenType.TEMPLATE_LIKE | 
+        MetaTokenType.NUMBER_LIKE |
+        MetaTokenType.NEW | 
+        MetaTokenType.DELETE |
+        MetaTokenType.UNDEFINED):
+          result.append(mt)
+        # ignore other mtokens
+        case _:
+          continue
+
+    return result
+
