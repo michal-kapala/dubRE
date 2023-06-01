@@ -122,35 +122,6 @@ class OperatorType(Enum):
   UNKNOWN = 42
   """Unknown operator or regular text match."""
 
-class TokenType(Enum):
-  ID_LIKE = 0
-  """Token which could be an identifier."""
-  PATH_LIKE = 1
-  """Token which could be a directory/file path."""
-  OPERATOR = 2
-  """Operator definition name."""
-  TEMPLATE_LIKE = 3
-  """Token which could be a template parameter list."""
-  DROPPABLE = 4
-  """Special character token which could be removed or substituted."""
-  SCOPE_RES = 5
-  """Scope resolution operator (`::`)."""
-  DEST_SCOPE_RES = 6
-  """`::~`"""
-  SPACE = 7
-  """Space outside of `TEMPLATE_LIKE` tokens."""
-
-
-class Token:
-  """Joint token used as parser input."""
-  def __init__(self, mtokens: List[MetaToken], type: TokenType) -> None:
-    self.mtokens = mtokens
-    self.type = type
-    token = ""
-    for mt in mtokens:
-      token += mt.token
-    self.token = token
-
 class PreParser:
     """Joins metatokens into potentially semantically meaningful tokens."""
     def __init__(self, metatokens: List[MetaToken]) -> None:

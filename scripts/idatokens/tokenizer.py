@@ -72,6 +72,13 @@ PATHLIKE_TYPES = [
 ]
 """Meta token types accepted in path-like literals."""
 
+NON_JOINABLE = [
+  MetaTokenType.OPERATOR_LIKE,
+  MetaTokenType.CONSTRUCTOR_LIKE,
+  MetaTokenType.DESTRUCTOR_LIKE,
+]
+"""Tokens unjoinable for `UNDEFINED` neighbours."""
+
 class Tokenizer:
   """Creates labelling-ready tokens out of preprocessed metatokens."""
   def __init__(self, metatokens) -> None:
@@ -427,7 +434,55 @@ class Tokenizer:
 
   def split(self) -> List[MetaToken]:
     """Removes unused special characters and tokens."""
+    joined = self.mtokens
     result = []
+
+    # join `OTHER` tokens with neighbours
+    idx = 0
+    while idx < len(joined):
+      if(joined[idx].type == MetaTokenType.OTHER):
+        # join with left neighbour
+        if (idx > 0 and 
+            idx < len(joined) and 
+            joined[idx - 1].type not in NON_JOINABLE and
+            joined[idx - 1].token[len(joined[idx - 1].token) - 1] != ">"):
+          joined[idx - 1].token += joined[idx].token
+          joined[idx - 1].type = MetaTokenType.UNDEFINED
+          joined.pop(idx)
+        # join with right neighbour
+        elif (idx + 1 < len(joined) and 
+              joined[idx + 1].type not in NON_JOINABLE and
+              joined[idx + 1].token[len(joined[idx + 1].token) - 1] != ">"):
+          joined[idx].token += joined[idx + 1].token
+          joined[idx].type = MetaTokenType.UNDEFINED
+          joined.pop(idx + 1)
+        # change type
+        else:
+          joined[idx].type = MetaTokenType.UNDEFINED
+      else:
+        idx += 1
+
+    # join `UNDEFINED` tokens
+    idx = 0
+    
+    while idx < len(joined) - 1:
+      # left join
+      if(joined[idx + 1].type == MetaTokenType.UNDEFINED and 
+         joined[idx].type not in NON_JOINABLE and
+         joined[idx].token[len(joined[idx].token) - 1] != ">"
+        ):
+        joined[idx].token += joined[idx + 1].token
+        joined[idx].type = MetaTokenType.UNDEFINED
+        joined.pop(idx + 1)
+      # right join
+      elif (joined[idx].type == MetaTokenType.UNDEFINED and 
+         joined[idx + 1].type not in NON_JOINABLE
+        ):
+        joined[idx + 1].token = joined[idx].token + joined[idx + 1].token
+        joined[idx + 1].type = MetaTokenType.UNDEFINED
+        joined.pop(idx)
+      else:
+        idx += 1
 
     for mt in self.mtokens:
       match mt.type:
@@ -443,8 +498,7 @@ class Tokenizer:
         MetaTokenType.TEMPLATE_LIKE | 
         MetaTokenType.NUMBER_LIKE |
         MetaTokenType.NEW | 
-        MetaTokenType.DELETE |
-        MetaTokenType.UNDEFINED):
+        MetaTokenType.DELETE):
           result.append(mt)
         # ignore other mtokens
         case _:
