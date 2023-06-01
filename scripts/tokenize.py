@@ -1,9 +1,10 @@
 import os, sys, getopt
 import sqlite3
-from idatokens.lexer import Lexer
-from idatokens.preparser import PreParser
-from idatokens.tokenizer import Tokenizer
 import datetime
+from tokens.lexer import Lexer
+from tokens.preparser import PreParser
+from tokens.tokenizer import Tokenizer
+
 
 HELP = 'Usage:\npython tokenize_idb.py -d <database path>'
 

@@ -1,4 +1,4 @@
-from idatokens.lexer import MetaToken, MetaTokenType
+from .lexer import MetaToken, MetaTokenType
 from typing import List
 
 PATTERNS = [
