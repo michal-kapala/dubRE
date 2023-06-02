@@ -4,14 +4,10 @@ import datetime
 from tokens.lexer import Lexer
 from tokens.preparser import PreParser
 from tokens.tokenizer import Tokenizer
+from utils.db import DbException
 
 
 HELP = 'Usage:\npython tokenize_idb.py -d <database path>'
-
-class DbException(Exception):
-  """SQLite database exception."""
-  def __init__(self, message):            
-    super().__init__(message)
 
 def check_columns(c: sqlite3.Cursor):
   """Validates column integrity of `strings`table."""
