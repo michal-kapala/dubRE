@@ -7,7 +7,7 @@ from tokens.tokenizer import Tokenizer
 from utils.db import DbException
 
 
-HELP = 'Usage:\npython tokenize_idb.py -d <database path>'
+HELP = 'Usage:\npython tokenize.py -d <database path>'
 
 def check_columns(c: sqlite3.Cursor):
   """Validates column integrity of `strings`table."""
