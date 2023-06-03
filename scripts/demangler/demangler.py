@@ -84,7 +84,7 @@ class Demangler:
     """Returns the core name of a function from unmangled signature."""
     result = ""
     for char in name:
-      if char == "@":
+      if char in ["@", "$"]:
         return result
       result += char
     return result
