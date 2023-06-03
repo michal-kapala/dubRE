@@ -23,7 +23,7 @@ python tokenize.py -d <database path>
 # Modules
 
 Packages implemented for internal use:
-- `demangler` - simple demangler for MSVC-originating function names found in [PDB format](https://github.com/microsoft/microsoft-pdb); based on [wikiversity.org](https://en.wikiversity.org/wiki/Visual_C%252B%252B_name_mangling)
+- `demangler` - simple demangler for MSVC-originating function names found in [PDB format](https://github.com/microsoft/microsoft-pdb) (based on [wikiversity.org](https://en.wikiversity.org/wiki/Visual_C++_name_mangling))
 - `tokens` - parsers for structuring name-like tokens from raw text
 - `utils` - miscellaneous utilities
 
