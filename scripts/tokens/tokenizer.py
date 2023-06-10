@@ -484,7 +484,33 @@ class Tokenizer:
       else:
         idx += 1
 
-    for mt in self.mtokens:
+    # handle simple path-like false positives due to \r, \n and \t
+    idx = 0
+    while idx < len(joined):
+      mt = joined[idx]
+      if mt.type == MetaTokenType.BACKSLASH and idx + 1 < len(joined):
+        if joined[idx + 1].token in ["r", "n", "t"]:
+          joined.pop[idx]
+          joined.pop[idx]
+          continue
+
+      # fix path-likes
+      retokenized = []
+      if mt.type == MetaTokenType.PATH_LIKE:
+        mt.token =  Tokenizer.__remove_eols(mt.token)
+        retokenized = Tokenizer.__retokenize(mt)
+
+        joined.pop(idx)
+        for id in range(len(retokenized)):
+          m = retokenized[id]
+          joined.insert(idx+id, m)
+
+      if len(retokenized) > 0:
+        idx += len(retokenized)
+      else:
+        idx += 1
+
+    for mt in joined:
       match mt.type:
         case (
         MetaTokenType.IDENTIFIER_LIKE |
@@ -506,3 +532,24 @@ class Tokenizer:
 
     return result
 
+  def __remove_eols(string: str) -> str:
+    """Removes `\\r`, `\\n` and `\\t` characters from the beginning and end of a string."""
+    while len(string) > 1:
+      if string[0] == "\\" and string[1] in ["r", "n", "t"]:
+        string = string[2:]
+      elif string[len(string) - 2] == "\\" and string[len(string) - 1] in ["r", "n", "t"]:
+        string = string[:-2]
+      else:
+        return string
+      
+    return string
+
+  def __retokenize(mt: MetaToken) -> List[MetaToken]:
+    """Tokenizes a false positive path-like."""
+    result = []
+    split = mt.token.split(" ")
+
+    for s in split:
+      if s != "":
+        result.append(MetaToken(s, MetaTokenType.IDENTIFIER_LIKE))
+    return result
