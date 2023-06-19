@@ -1,0 +1,13 @@
+{
+  "outputFile": "Full/path/to/output/database/file/output.db",
+  "files": [
+      {
+        "label": "Example binary 1",
+        "path": "Full/path/to/input/database/file/example-binary-1.db"
+      },
+      {
+        "label": "Example binary 2",
+        "path": "Another/full/path/to/input/database/file/example-binary-2.db"
+      }
+  ]
+}

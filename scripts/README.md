@@ -9,7 +9,7 @@ To produce a JSON file from PDB use this fork of [willglynn/pdb](https://github.
 
 Usage:
 ```
-python pdb.py -d <database path> -j <JSON file path>
+python pdb.py --dbpath="<database path>" --json="<JSON file path>"
 ```
 
 ## `tokenize.py`
@@ -17,7 +17,18 @@ Creates `tokens` SQLite table off `strings` table; to create `strings` use [`str
 
 Usage:
 ```
-python tokenize.py -d <database path>
+python tokenize.py --dbpath="<database path>"
+```
+
+## `mergedb.py`
+
+Merges all binary databases specified in a JSON configuration file into one.
+
+See example [merge_db_config.json](/merge_db_config.json) for details.
+
+Usage (with example config):
+```
+python mergedb.py --config="<dubRE root dir>/mergedb_example.json"
 ```
 
 # Modules
