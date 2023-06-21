@@ -24,7 +24,7 @@ python tokenize.py --dbpath="<database path>"
 
 Merges all binary databases specified in a JSON configuration file into one.
 
-See example [merge_db_config.json](/merge_db_config.json) for details.
+See example [mergedb_example.json](/mergedb_example.json) for details.
 
 Usage (with example config):
 ```
