@@ -8,6 +8,12 @@ Exports unique raw strings from IDA into SQLite `strings` table.
 
 IDA hotkey: `Shift+S`
 
+## `xref_export.py`
+
+Exports unique cross reference paths from IDA into SQLite `xrefs` table.
+
+IDA hotkey: `Shift+X`
+
 # Installation
 
 To install a plugin either drop it in `IDA Pro/plugins` directory or use [Sark's plugin loader](https://sark.readthedocs.io/en/latest/plugins/installation.html) to load it from a remote folder.
