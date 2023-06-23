@@ -3,6 +3,7 @@ Classification-driven function name extraction plugin for IDA Pro.
 
 ## Directories
 
+See subfolder READMEs for details on plugin and script usage:
 - `plugins` - IDA plugin utilities for IDB information export
 - `scripts` - standalone scripts for data transformation; contains dependency modules
 

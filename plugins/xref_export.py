@@ -33,6 +33,13 @@ def is_tostring_xref(xref):
   # https://www.hex-rays.com/products/ida/support/idapython_docs/idc.html#idc.get_strlit_contents
   return xref.type.is_data and idc.get_strlit_contents(xref.to) not in [None, ""] and not is_before_rdata(xref.to)
 
+def try_get_func(ea):
+  """Returns the parent function or `None` on failure."""
+  try:
+    return sark.Function(ea)
+  except:
+    return None
+
 def traverse_referrer_referee(cur, top_func, path_func1, path_func2, path_func3, ref_depth, is_upward):
   """Adds string xrefs from a referrer or referee function."""
   # depth checks
@@ -46,14 +53,17 @@ def traverse_referrer_referee(cur, top_func, path_func1, path_func2, path_func3,
   # choose passed function
   func = None
   if ref_depth == 1:
-    func = sark.Function(path_func1)
+    func = try_get_func(path_func1)
   elif ref_depth == 2:
-    func = sark.Function(path_func2)
+    func = try_get_func(path_func2)
   elif ref_depth == 3:
-    func = sark.Function(path_func3)
+    func = try_get_func(path_func3)
   else:
     raise Exception("Max reference recursion depth violated: " + str(ref_depth))
-    
+  
+  if func is None:
+    return
+
   # add string references
   for xref in func.xrefs_from:
     # skip all xrefs pointing neither to a function nor a string
@@ -66,6 +76,11 @@ def traverse_referrer_referee(cur, top_func, path_func1, path_func2, path_func3,
 
     # function xref - traverse downward function xrefs
     if xref.type.is_code and not is_upward:
+      # skip xrefs to instruction blocks (unstructured functions)
+      referee = idaapi.get_func(xref.to)
+      if referee is None:
+        continue
+
       if ref_depth == 1:
         traverse_referrer_referee(cur, top_func, path_func1, xref.to, path_func3, ref_depth, False)
       elif ref_depth == 2:
@@ -81,7 +96,7 @@ def traverse_referrer_referee(cur, top_func, path_func1, path_func2, path_func3,
     # string xref - add x-level reference
     else:
       try:
-        cur.execute("INSERT INTO xrefs (func_addr,string_addr,path_func1,path_func2,path_func3,ref_depth,is_upward) VALUES (?,?,?,?,?,?,?)", (
+        cur.execute("INSERT INTO paths (func_addr,string_addr,path_func1,path_func2,path_func3,ref_depth,is_upward) VALUES (?,?,?,?,?,?,?)", (
           top_func, xref.to, path_func1, path_func2, path_func3, ref_depth, is_upward
           ))
       except sqlite3.IntegrityError:
@@ -94,13 +109,14 @@ def traverse_referrer_referee(cur, top_func, path_func1, path_func2, path_func3,
       if not xref.type.is_code:
         continue
       # skip xrefs from instruction blocks (unstructured functions)
-      if idc.get_func_name(xref.frm) == "":
+      referrer = idaapi.get_func(xref.frm)
+      if referrer is None:
         continue
       
       if ref_depth == 1:
-        traverse_referrer_referee(cur, top_func, path_func1, xref.frm, path_func3, ref_depth, True)
+        traverse_referrer_referee(cur, top_func, path_func1, referrer.start_ea, path_func3, ref_depth, True)
       elif ref_depth == 2:
-        traverse_referrer_referee(cur, top_func, path_func1, path_func2, xref.frm, ref_depth, True)
+        traverse_referrer_referee(cur, top_func, path_func1, path_func2, referrer.start_ea, ref_depth, True)
       else:
         raise Exception("Unimplemented reference recursion depth for MAX_REF_DEPTH=" + str(MAX_DOWN_REFERENCE_DEPTH))
 
@@ -116,20 +132,21 @@ def export_xrefs():
   c = conn.cursor()
 
   # Create function-string xrefs table
-  c.execute('''CREATE TABLE IF NOT EXISTS xrefs (
+  c.execute('''CREATE TABLE IF NOT EXISTS paths (
               id INTEGER PRIMARY KEY,
               func_addr INTEGER NOT NULL,
               string_addr INTEGER NOT NULL,
-              path_func1 INTEGER,
-              path_func2 INTEGER,
-              path_func3 INTEGER,
+              path_func1 INTEGER NOT NULL,
+              path_func2 INTEGER NOT NULL,
+              path_func3 INTEGER NOT NULL,
               ref_depth INTEGER NOT NULL,
               is_upward INTEGER NOT NULL,
+              to_name INTEGER,
               UNIQUE (func_addr, string_addr, path_func1, path_func2, path_func3))''')
   
   # Create function-token xrefs table
-  c.execute('''CREATE TABLE IF NOT EXISTS xref_tokens (
-              xref_id INTEGER NOT NULL,
+  c.execute('''CREATE TABLE IF NOT EXISTS token_paths (
+              path_id INTEGER NOT NULL,
               func_addr INTEGER NOT NULL,
               string_addr INTEGER NOT NULL,
               token_literal TEXT NOT NULL,
@@ -140,7 +157,12 @@ def export_xrefs():
   
   ref_depth = 0
 
-  for func in sark.functions():
+  funcs = sark.functions()
+  func_cnt = 1
+
+  for func in funcs:
+    print("Function " + str(func_cnt))
+    func_cnt += 1
     # level 0 - downward search
     for xref in func.xrefs_from:
       # skip all xrefs pointing neither to a function nor a string
@@ -160,7 +182,7 @@ def export_xrefs():
       # string xref - add 0-level reference
       else:
         try:
-          c.execute("INSERT INTO xrefs (func_addr,string_addr,path_func1,path_func2,path_func3,ref_depth,is_upward) VALUES (?,?,?,?,?,?,?)", (
+          c.execute("INSERT INTO paths (func_addr,string_addr,path_func1,path_func2,path_func3,ref_depth,is_upward) VALUES (?,?,?,?,?,?,?)", (
             func.ea, xref.to, -1, -1, -1, 0, False
             ))
           exported += 1
@@ -173,12 +195,12 @@ def export_xrefs():
       if not xref.type.is_code:
         continue
       # skip xrefs from instruction blocks (unstructured functions)
-      if idc.get_func_name(xref.frm) == "":
+      referrer = idaapi.get_func(xref.frm)
+      if referrer is None:
         continue
 
       # function xref - traverse reference graph neighbours
-      if xref.type.is_code:
-        traverse_referrer_referee(c, func.ea, xref.frm, -1, -1, ref_depth, True)
+      traverse_referrer_referee(c, func.ea, referrer.start_ea, -1, -1, ref_depth, True)
 
   print("Exported " + str(exported) + " zero-level xref paths.")
   conn.commit()

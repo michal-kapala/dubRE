@@ -10,9 +10,21 @@ IDA hotkey: `Shift+S`
 
 ## `xref_export.py`
 
-Exports unique cross reference paths from IDA into SQLite `xrefs` table.
+Exports unique cross reference paths from IDA into SQLite `paths` table.
 
 IDA hotkey: `Shift+X`
+
+## `func_export.py`
+
+Exports function addresses into SQLite `funcs` table.
+
+IDA hotkey: `Shift+F`
+
+## `funcdata_export.py`
+
+Exports function data into premade SQLite `funcs` table.
+
+IDA hotkey: `Shift+D`
 
 # Installation
 
