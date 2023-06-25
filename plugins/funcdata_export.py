@@ -39,8 +39,8 @@ def get_nb_xref_to(ea):
   unique = []
 
   for xref in func.xrefs_to:
-    if xref.type.is_code and xref.to not in unique:
-      unique.append(xref.to)
+    if xref.type.is_code and xref.frm not in unique:
+      unique.append(xref.frm)
 
   return len(unique)
 
