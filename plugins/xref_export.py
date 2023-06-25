@@ -161,7 +161,7 @@ def export_xrefs():
   func_cnt = 1
 
   for func in funcs:
-    print("Function " + str(func_cnt))
+    print(str(func_cnt) + " - " + func.name)
     func_cnt += 1
     # level 0 - downward search
     for xref in func.xrefs_from:

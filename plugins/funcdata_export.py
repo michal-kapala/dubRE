@@ -80,10 +80,13 @@ def export_func_data():
   # Fetch addresses
   c.execute("SELECT func_addr FROM funcs")
   addrs = c.fetchall()
+  func_cnt = 0
 
   for row in addrs:
     addr = row[0]
     func = sark.Function(addr)
+    func_cnt += 1
+    print(str(func_cnt) + " - " + func.name)
 
     nb_referrers = get_nb_xref_to(addr)
     nb_strings = get_nb_strings(addr)
