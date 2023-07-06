@@ -31,6 +31,42 @@ Usage (with example config):
 python mergedb.py --config="<dubRE root dir>/mergedb_example.json"
 ```
 
+## `autolabel_paths.py`
+
+Automatically labels `paths` records based on token inclusion in `pdb` function names. Obtained results still need manual review and corrections.
+
+Usage:
+```
+python autolabel_paths.py --dbpath=<database path>
+```
+
+## `tpaths.py`
+
+Creates and populates `token_paths` table with **all** function-string paths from functions which have any positive function-string paths (`paths` table).
+
+Usage:
+```
+python tpaths.py --dbpath=<database path>
+```
+
+## `tpaths_pos.py`
+
+Creates and populates `token_paths_positive` table with **positive** function-string paths. Manual labelling of function-token paths should be performed on this table and copied back to `token_paths` with [`tpaths_merge.py`](#tpaths_mergepy).
+
+Usage:
+```
+python tpaths_pos.py --dbpath=<database path>
+```
+
+## `tpaths_merge.py`
+
+Copies positive labels from `token_paths_positive` helper table into `token_paths` table and deletes `token_paths_positive`.
+
+Usage:
+```
+python tpaths_pos.py --dbpath=<database path>
+```
+
 # Modules
 
 Packages implemented for internal use:
