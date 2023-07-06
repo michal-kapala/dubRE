@@ -3,11 +3,11 @@ import sqlite3
 import datetime
 from tokens.lexer import Lexer
 from tokens.preparser import PreParser
-from tokens.tokenizer import Tokenizer
+from tokens.tokenizer import Tokenizer, tokenize
 from utils.db import DbException
 
 
-HELP = 'Usage:\npython tokenize.py -d <database path>'
+HELP = 'Usage:\npython tokenize.py --dbpath=<database path>'
 
 def check_columns(c: sqlite3.Cursor):
   """Validates column integrity of `strings`table."""
@@ -33,7 +33,7 @@ def check_columns(c: sqlite3.Cursor):
   if columns[0][1] == "literal" and columns[0][2] != "TEXT":
     raise DbException("Invalid 'literal' column type, required: TEXT")
 
-def tokenize(conn: sqlite3.Connection):
+def make_tokens(conn: sqlite3.Connection):
   c = conn.cursor()
   try:
     c.execute("SELECT * FROM strings")
@@ -61,24 +61,7 @@ def tokenize(conn: sqlite3.Connection):
   tokenizer = Tokenizer([])
 
   for address, string in strings:
-    lexer.reset(string)
-    # create metatokens
-    metatokens = lexer.metatokens()
-    preparser.reset(metatokens)
-    # join operator metatokens into operator identifiers
-    metatokens = preparser.make_operator_ids()
-    preparser.reset(metatokens)
-    # create template-like tokens
-    metatokens = preparser.make_templates()
-    tokenizer.reset(metatokens)
-    # create full function name tokens
-    metatokens = tokenizer.match_patterns()
-    tokenizer.reset(metatokens)
-    # create paths to reduce the number of tokens
-    metatokens = tokenizer.make_paths()
-    tokenizer.reset(metatokens)
-    # split on unused meta tokens
-    tokens = tokenizer.split()
+    tokens = tokenize(string, lexer, preparser, tokenizer)
 
     # add token records
     for t in tokens:
@@ -112,7 +95,7 @@ def main(argv):
     raise DbException(f"Database not found at {db_path}")
 
   conn = sqlite3.connect(db_path)
-  tokenize(conn)
+  make_tokens(conn)
 
 if __name__ == "__main__":
    main(sys.argv[1:])

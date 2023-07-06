@@ -6,7 +6,7 @@ from utils.db import DbException
 from demangler.demangler import Demangler
 
 
-HELP = 'Usage:\npython pdb.py -d <database path> -j <JSON file path>\n'
+HELP = 'Usage:\npython pdb.py --dbpath=<database path> --json=<JSON file path>\n'
 
 def process_pdb(conn: sqlite3.Connection, file: TextIOWrapper):
   """Demangles and saves PDB functions in the database."""

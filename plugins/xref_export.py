@@ -144,14 +144,6 @@ def export_xrefs():
               to_name INTEGER,
               UNIQUE (func_addr, string_addr, path_func1, path_func2, path_func3))''')
   
-  # Create function-token xrefs table
-  c.execute('''CREATE TABLE IF NOT EXISTS token_paths (
-              path_id INTEGER NOT NULL,
-              func_addr INTEGER NOT NULL,
-              string_addr INTEGER NOT NULL,
-              token_literal TEXT NOT NULL,
-              names_func INTEGER)''')
-  
   # Export xrefs to db
   exported = 0
   

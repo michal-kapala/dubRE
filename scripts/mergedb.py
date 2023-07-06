@@ -5,7 +5,7 @@ from datetime import datetime
 from utils.db import DbException
 
 
-HELP = 'Usage:\npython mergedb.py --config <JSON file path>\n'
+HELP = 'Usage:\npython mergedb.py --config=<JSON file path>\n'
 
 def add_db(in_cur: sqlite3.Cursor, out_cur: sqlite3.Cursor, label: str):
   """Adds one database to the dataset."""

@@ -1,4 +1,5 @@
-from .lexer import MetaToken, MetaTokenType
+from .lexer import MetaToken, MetaTokenType, Lexer
+from .preparser import PreParser
 from typing import List
 
 PATTERNS = [
@@ -553,3 +554,24 @@ class Tokenizer:
       if s != "":
         result.append(MetaToken(s, MetaTokenType.IDENTIFIER_LIKE))
     return result
+
+def tokenize(string: str, lexer: Lexer, preparser: PreParser, tokenizer: Tokenizer) -> List[MetaToken]:
+  """High-level tokenizer API function."""
+  lexer.reset(string)
+  # create metatokens
+  metatokens = lexer.metatokens()
+  preparser.reset(metatokens)
+  # join operator metatokens into operator identifiers
+  metatokens = preparser.make_operator_ids()
+  preparser.reset(metatokens)
+  # create template-like tokens
+  metatokens = preparser.make_templates()
+  tokenizer.reset(metatokens)
+  # create full function name tokens
+  metatokens = tokenizer.match_patterns()
+  tokenizer.reset(metatokens)
+  # create paths to reduce the number of tokens
+  metatokens = tokenizer.make_paths()
+  tokenizer.reset(metatokens)
+  # split on unused meta tokens
+  return tokenizer.split()
