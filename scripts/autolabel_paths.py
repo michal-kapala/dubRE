@@ -1,8 +1,6 @@
 import os, sys, getopt
-import sqlite3, json
-from io import TextIOWrapper
+import sqlite3
 from datetime import datetime
-from typing import List
 from utils.db import DbException
 
 

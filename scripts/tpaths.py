@@ -20,7 +20,7 @@ def get_unique_functions(paths) -> List[int]:
   return unique
 
 def make_token_paths(conn: sqlite3.Connection):
-  """Populates function-token paths (`token_paths`) SQLite table."""
+  """Populates function-token paths (`token_paths`) SQLite table (based on `tokens` labels)."""
   
   print(f"start:\t{datetime.now()}")
 
