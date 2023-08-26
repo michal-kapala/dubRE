@@ -1,9 +1,12 @@
 import sqlite3, sys, os, getopt, pandas as pd
 from gensim.models import FastText
+from sklearn.model_selection import train_test_split
 
 
 HELP = 'Usage:\npython train_embedder.py --dbpath="<database path>"\n'
-COLUMNS = ['binary', 'string_addr', 'literal', 'is_name']
+COLUMNS = ['literal', 'is_name']
+TEST_SIZE_RATIO = 0.2
+"""Desired percentage of test samples in the dataset."""
 
 def train_ft(data: list[list[str]]) -> FastText:
   """Trains FastText model from a token list."""
@@ -12,10 +15,6 @@ def train_ft(data: list[list[str]]) -> FastText:
 def save_ft(model: FastText):
   """Saves FastText model to a file."""
   model.save('embedder.ft')
-
-def load_ft(path: str) -> FastText:
-  """Loads a pretrained FastText model from a file."""
-  return FastText.load(path)
 
 def listify(lst: list[str]) -> list[list[str]]:
   """Transforms `list[str]` into a `list[list[str]]`."""
@@ -28,24 +27,51 @@ def train_token_embedder(conn: sqlite3.Connection):
   """Trains text feature (token) embedding model (FastText) and saves it to a file."""
   cur = conn.cursor()
 
+  # query binary-native tokens
   try:
-    cur.execute('SELECT * FROM tokens WHERE is_name IS NOT NULL')
+    cur.execute('SELECT literal, is_name FROM tokens WHERE is_name IS NOT NULL')
     tokens = cur.fetchall()
   # 'no such table: x'
   except sqlite3.OperationalError as ex:
     print(ex)
     sys.exit()
 
-  tokens = pd.DataFrame(data=tokens, columns=COLUMNS)['literal']
+  # query function name positives from pdb to balance the dataset
+  try:
+    cur.execute('SELECT literal FROM pdb')
+    pdb = cur.fetchall()
+  # 'no such table: x'
+  except sqlite3.OperationalError as ex:
+    print(ex)
+    sys.exit()
+
+  pdb_df = pd.DataFrame(data=pdb, columns=['literal'], index=range(len(pdb)))
+  pdb_df['is_name'] = ''
+  
+  for idx in pdb_df.index:
+    pdb_df.at[idx, 'is_name'] = 1
+
+  df = pd.DataFrame(data=tokens, columns=COLUMNS)
+
+  # calculate the nb of missing positives
+  nb_neg = df[df['is_name'] == 0].shape[0]
+  nb_pos = df.shape[0] - nb_neg
+  nb_missing_pos = nb_neg - nb_pos
+
+  # deterministic shuffle
+  balancing_pos, _ = train_test_split(pdb_df, train_size=nb_missing_pos, random_state=0)
+  df = pd.concat([df, balancing_pos], ignore_index=True)
+
+  # deterministic shuffle, the same splitting is used for classifier datasets
+  train, _ = train_test_split(df, test_size=TEST_SIZE_RATIO, random_state=0)
+  ft_data = train.drop(['is_name'], axis=1).values.tolist()
+  print(train)
 
   # FastText 'sentences' (one word-long)
-  ft_data = listify(tokens.to_list())
   print('Training FastText embedder...')
   ft = train_ft(ft_data)
   save_ft(ft)
   print('Training finished, saved FastText model to `embedder.ft`')
-  # X_train, X_test, y_train, y_test = train_test_split(df, test_size=0.1, random_state=0)
-  
 
 def main(argv):
   db_path = ""
