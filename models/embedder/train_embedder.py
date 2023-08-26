@@ -16,12 +16,16 @@ def save_ft(model: FastText):
   """Saves FastText model to a file."""
   model.save('embedder.ft')
 
-def listify(lst: list[str]) -> list[list[str]]:
-  """Transforms `list[str]` into a `list[list[str]]`."""
-  result = []
-  for elem in lst:
-    result.append([elem])
-  return result
+def balance_dataset(tokens_df: pd.DataFrame, pdb_df: pd.DataFrame) -> pd.DataFrame:
+  """Returns a complete dataset balanced with PDB positives."""
+  # calculate the nb of missing positives
+  nb_neg = tokens_df[tokens_df['is_name'] == 0].shape[0]
+  nb_pos = tokens_df.shape[0] - nb_neg
+  nb_missing_pos = nb_neg - nb_pos
+
+  # deterministic shuffle
+  balancing_pos, _ = train_test_split(pdb_df, train_size=nb_missing_pos, random_state=0)
+  return pd.concat([tokens_df, balancing_pos], ignore_index=True)
 
 def train_token_embedder(conn: sqlite3.Connection):
   """Trains text feature (token) embedding model (FastText) and saves it to a file."""
@@ -52,15 +56,7 @@ def train_token_embedder(conn: sqlite3.Connection):
     pdb_df.at[idx, 'is_name'] = 1
 
   df = pd.DataFrame(data=tokens, columns=COLUMNS)
-
-  # calculate the nb of missing positives
-  nb_neg = df[df['is_name'] == 0].shape[0]
-  nb_pos = df.shape[0] - nb_neg
-  nb_missing_pos = nb_neg - nb_pos
-
-  # deterministic shuffle
-  balancing_pos, _ = train_test_split(pdb_df, train_size=nb_missing_pos, random_state=0)
-  df = pd.concat([df, balancing_pos], ignore_index=True)
+  df = balance_dataset(df, pdb_df)
 
   # deterministic shuffle, the same splitting is used for classifier datasets
   train, _ = train_test_split(df, test_size=TEST_SIZE_RATIO, random_state=0)

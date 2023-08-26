@@ -1,45 +1,55 @@
 import sqlite3, sys, os, getopt, pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
-from gensim.models import FastText
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import cross_val_score
+from joblib import dump
+from utils import NameClassifierUtils as utils
 
 
-HELP = 'Usage:\npython train_nbayes.py --dbpath="<database path>"\n'
-COLUMNS = ['binary', 'string_addr', 'literal', 'is_name']
-
-def get_embedder_path():
-  """Returns the path to FastText model file."""
-  models_path, _ = os.path.split(os.getcwd())
-  return os.path.join(models_path, 'embedder\\embedder.ft')
-
-def load_ft(path: str) -> FastText:
-  """Loads a pretrained FastText model from a file."""
-  return FastText.load(path)
+HELP = 'Usage:\npython train_gnbayes.py --dbpath="<database path>"\n'
+MODEL_FILE = 'names_gnbayes.joblib'
 
 def train_naive_bayes(conn: sqlite3.Connection):
-  """Trains function name classifier using Naive Bayes (scikit-learn) model and saves it to a file."""
+  """Trains function name classifier using Gaussian Naive Bayes (scikit-learn) model and saves it to a file."""
   cur = conn.cursor()
-
+  print("Fetching data...")
+  tokens = utils.query_tokens(cur)
+  pdb = utils.query_pdb(cur)
+  df = utils.balance_dataset(tokens, pdb)
+  print('Loading FastText model...')
   try:
-    cur.execute('SELECT * FROM tokens WHERE is_name IS NOT NULL')
-    tokens = cur.fetchall()
-  # 'no such table: x'
-  except sqlite3.OperationalError as ex:
-    print(ex)
-    sys.exit()
-
-  df = pd.DataFrame(data=tokens, columns=COLUMNS)
-  tokens = df['literal']
-  labels = df['is_name']
-  try:
-    # load FastText text embedder (Windows paths only!)
-    ft = load_ft(get_embedder_path())
+    ft = utils.load_ft(utils.get_embedder_path())
   except Exception as ex:
     print(ex)
     sys.exit()
-  print(ft.wv['std::cout'])
-  # X_train, X_test, y_train, y_test = train_test_split(df, test_size=0.1, random_state=0)
+  literals = df['literal']
+  labels = df['is_name']
+
+  print("Splitting datasets...")
+  x_train, x_test, y_train, y_test = utils.split_dataset(literals, labels)
   
+  print("Performing word embedding...")
+  x_train = pd.DataFrame(data=x_train, columns = ['literal'])
+  x_train = utils.ft_embed(ft, x_train)
+  x_train = utils.listify(x_train['lit_vec'].to_list())
+  y_train = tuple(y_train.to_list())
+
+  # scaling
+  scaler = StandardScaler()
+  scaler.fit(x_train)
+  scaler.transform(x_train)
+
+  gnb = GaussianNB()
+
+  # cross-validation
+  scores = cross_val_score(gnb, X=x_train, y=y_train, cv=10)
+  print("Accuracy: %0.3f, std_dev: %0.3f" % (scores.mean(), scores.std()))
+
+  print("Training classifier...")
+  gnb.fit(X=x_train, y=y_train)
+  file_path = utils.get_model_path(MODEL_FILE)
+  dump(gnb, file_path)
+  print(f'Model saved to {file_path}')
 
 def main(argv):
   db_path = ""
