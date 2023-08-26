@@ -83,9 +83,50 @@ class NameClassifierUtils:
       tokens.at[idx, 'lit_vec'] = ft.wv[tokens.at[idx, 'literal']]
     return tokens
 
+  @staticmethod
   def listify(lst: list) -> list[list]:
     """Transforms `list[numpy.array]` into a `list[list[any]]`."""
     result = []
     for elem in lst:
       result.append([elem.tolist()])
     return result
+  
+  @staticmethod
+  def save_results(results: pd.DataFrame, table: str, dbpath: str):
+    """Saves (or overwrites) test results to results database."""
+    conn = sqlite3.connect(dbpath)
+    cur = conn.cursor()
+
+    try:
+      # sql injection yay (table names cant be passed as params)
+      cur.execute(f'DROP TABLE IF EXISTS {table}')
+      cur.execute(f'''CREATE TABLE {table} (
+                  literal TEXT NOT NULL,
+                  lit_vec REAL NOT NULL,
+                  label INTEGER NOT NULL,
+                  prediction INTEGER NOT NULL)''')
+    except Exception as ex:
+      print(ex)
+      sys.exit()
+
+    conn.commit()
+
+    literal = str('')
+    lit_vec = 0.0
+    label = int(-1)
+    prediction = int(-1)
+
+    for idx in results.index:
+      literal = results.at[idx, 'literal']
+      lit_vec = float(results.at[idx, 'lit_vec'])
+      label = results.at[idx, 'label']
+      prediction = int(results.at[idx, 'prediction'])
+      try:
+        # sql injection yay (table names cant be passed as params)
+        cur.execute(f'INSERT INTO {table} VALUES (?,?,?,?)', (literal, lit_vec, label, prediction))
+      except Exception as ex:
+        print(ex)
+        sys.exit()
+
+    conn.commit()
+    conn.close()

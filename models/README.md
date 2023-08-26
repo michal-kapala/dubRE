@@ -3,8 +3,9 @@
 Serialized classifier models with corresponding training and testing scripts.
 ## Directories
 
-* `/embedder` - [`FastText`](https://fasttext.cc/) word embedder model for token text vectorization (self-trained, with source)
-* `/names` - training and test scripts for function name classifiers
+* `embedder` - [`FastText`](https://fasttext.cc/) word embedder model for token text vectorization (self-trained, with source)
+* `names` - training and test scripts for function name classifiers
+
 ## Files
 Naming convention for model files is `<classifier set>_<classifier name>.<serialization source>`.
 
