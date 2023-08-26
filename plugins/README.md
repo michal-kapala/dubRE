@@ -2,6 +2,15 @@
 
 Data extraction plugins for IDA Pro.
 
+Recommended data extraction order (ensures data integrity):
+1. [`xref_export.py`](#xref_exportpy)
+2. [`string_export.py`](#string_exportpy)
+3. [`utf16_export.py`](#utf16_exportpy)
+4. [`func_export.py`](#func_exportpy)
+5. [`funcdata_export.py`](#funcdata_exportpy)
+
+To run the plugins open the IDB file and use the assigned hotkeys or go to `Edit/Plugins`.
+
 ## `string_export.py`
 
 Exports unique raw strings from IDA into SQLite `strings` table.

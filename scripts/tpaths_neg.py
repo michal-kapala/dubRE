@@ -7,7 +7,7 @@ from tokens.preparser import PreParser
 from tokens.tokenizer import Tokenizer, tokenize
 
 
-HELP = 'Usage:\npython tpaths_neg.py --dbpath=<database path>\n'
+HELP = 'Usage:\npython tpaths_neg.py --dbpath="<database path>"\n'
 
 def make_token_paths_negative(conn: sqlite3.Connection):
   """Adds and autolabels negative `token_paths` (based on `paths` labels)."""
