@@ -71,7 +71,7 @@ def train_token_embedder(conn: sqlite3.Connection):
 
 def main(argv):
   db_path = ""
-  opts, args = getopt.getopt(argv,"hd:",["dbpath="])
+  opts, _ = getopt.getopt(argv,"hd:",["dbpath="])
   for opt, arg in opts:
     if opt == '-h':
       print(HELP)

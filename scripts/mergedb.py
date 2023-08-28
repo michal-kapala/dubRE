@@ -160,8 +160,7 @@ def merge_db(config_file: TextIOWrapper):
               binary TEXT NOT NULL,
               func_addr INTEGER NOT NULL,
               literal TEXT,
-              demangled INTEGER NOT NULL,
-              PRIMARY KEY (binary, func_addr))''')
+              demangled INTEGER NOT NULL)''')
   
   output_cur.execute('''CREATE TABLE IF NOT EXISTS funcs (
               binary TEXT NOT NULL,

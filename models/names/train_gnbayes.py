@@ -12,21 +12,24 @@ MODEL_FILE = 'names_gnbayes.joblib'
 def train_naive_bayes(conn: sqlite3.Connection):
   """Trains function name classifier using Gaussian Naive Bayes (scikit-learn) model and saves it to a file."""
   cur = conn.cursor()
-  print("Fetching data...")
-  tokens = utils.query_tokens(cur)
-  pdb = utils.query_pdb(cur)
-  df = utils.balance_dataset(tokens, pdb)
+
   print('Loading FastText model...')
   try:
     ft = utils.load_ft(utils.get_embedder_path())
   except Exception as ex:
     print(ex)
     sys.exit()
+
+  print("Fetching data...")
+  tokens = utils.query_tokens(cur)
+  pdb = utils.query_pdb(cur)
+  df = utils.balance_dataset(tokens, pdb)
+  
   literals = df['literal']
   labels = df['is_name']
 
   print("Splitting datasets...")
-  x_train, x_test, y_train, y_test = utils.split_dataset(literals, labels)
+  x_train, _, y_train, _ = utils.split_dataset(literals, labels)
   
   print("Performing word embedding...")
   x_train = pd.DataFrame(data=x_train, columns = ['literal'])
@@ -41,9 +44,10 @@ def train_naive_bayes(conn: sqlite3.Connection):
 
   gnb = GaussianNB()
 
-  # cross-validation
-  scores = cross_val_score(gnb, X=x_train, y=y_train, cv=10)
-  print("Accuracy: %0.3f, std_dev: %0.3f" % (scores.mean(), scores.std()))
+  print("Cross-validation (5-fold)...")
+  scores = cross_val_score(gnb, X=x_train, y=y_train)
+  print("Accuracy: %0.3f" % (scores.mean()))
+  print("Std_dev: %0.3f" % (scores.std()))
 
   print("Training classifier...")
   gnb.fit(X=x_train, y=y_train)
@@ -53,7 +57,7 @@ def train_naive_bayes(conn: sqlite3.Connection):
 
 def main(argv):
   db_path = ""
-  opts, args = getopt.getopt(argv,"hd:",["dbpath="])
+  opts, _ = getopt.getopt(argv,"hd:",["dbpath="])
   for opt, arg in opts:
     if opt == '-h':
       print(HELP)
@@ -70,6 +74,5 @@ def main(argv):
   train_naive_bayes(conn)
   conn.close()
   
-
 if __name__ == "__main__":
   main(sys.argv[1:])

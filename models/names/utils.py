@@ -70,7 +70,7 @@ class NameClassifierUtils:
 
   @staticmethod
   def split_dataset(features: pd.DataFrame, labels: pd.DataFrame) -> tuple:
-    """Parameterized wrapper for `sklearn.model_selection.train_test_split`."""
+    """Parameterized wrapper for `sklearn.model_selection.train_test_split` for classifier training."""
     # Deterministic shuffle
     x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=_TEST_SIZE_RATIO, random_state=0)
     return x_train, x_test, y_train, y_test
@@ -92,8 +92,8 @@ class NameClassifierUtils:
     return result
   
   @staticmethod
-  def save_results(results: pd.DataFrame, table: str, dbpath: str):
-    """Saves (or overwrites) test results to results database."""
+  def save_results(results: dict, table: str, dbpath: str):
+    """Saves test results to results database (or overwrites existing)."""
     conn = sqlite3.connect(dbpath)
     cur = conn.cursor()
 
@@ -101,32 +101,38 @@ class NameClassifierUtils:
       # sql injection yay (table names cant be passed as params)
       cur.execute(f'DROP TABLE IF EXISTS {table}')
       cur.execute(f'''CREATE TABLE {table} (
-                  literal TEXT NOT NULL,
-                  lit_vec REAL NOT NULL,
-                  label INTEGER NOT NULL,
-                  prediction INTEGER NOT NULL)''')
+                  pos INTEGER NOT NULL,
+                  neg INTEGER NOT NULL,
+                  tp INTEGER NOT NULL,
+                  tn INTEGER NOT NULL,
+                  fp INTEGER NOT NULL,
+                  fn INTEGER NOT NULL,
+                  accuracy REAL NOT NULL,
+                  precision REAL NOT NULL,
+                  recall REAL NOT NULL,
+                  f1 REAL NOT NULL)''')
     except Exception as ex:
       print(ex)
       sys.exit()
 
     conn.commit()
-
-    literal = str('')
-    lit_vec = 0.0
-    label = int(-1)
-    prediction = int(-1)
-
-    for idx in results.index:
-      literal = results.at[idx, 'literal']
-      lit_vec = float(results.at[idx, 'lit_vec'])
-      label = results.at[idx, 'label']
-      prediction = int(results.at[idx, 'prediction'])
-      try:
-        # sql injection yay (table names cant be passed as params)
-        cur.execute(f'INSERT INTO {table} VALUES (?,?,?,?)', (literal, lit_vec, label, prediction))
-      except Exception as ex:
-        print(ex)
-        sys.exit()
+    pos = int(results['pos'])
+    neg = int(results['neg'])
+    tp = int(results['tp'])
+    tn = int(results['tn'])
+    fp = int(results['fp'])
+    fn = int(results['fn'])
+    acc = float(results['accuracy'])
+    precision = float(results['precision'])
+    recall = float(results['recall'])
+    f1 = float(results['f1'])
+    try:
+      # sql injection yay (table names cant be passed as params)
+      cur.execute(f'INSERT INTO {table} VALUES (?,?,?,?,?,?,?,?,?,?)',
+                  (pos, neg, tp, tn, fp, fn, acc, precision, recall, f1))
+    except Exception as ex:
+      print(ex)
+      sys.exit()
 
     conn.commit()
     conn.close()

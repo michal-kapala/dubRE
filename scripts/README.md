@@ -64,6 +64,14 @@ Usage:
 python tpaths_add_one_missing.py --dbpath="<database path>" --pathid=<path id>
 ```
 
+## `tpaths_cleanse.py`
+Removes unwanted labelling from `token_paths` (the ones missing their `paths` label). Important for token paths classifiers training.
+
+Usage:
+```
+python tpaths_cleanse.py --dbpath="<database path>"
+```
+
 ## `tpaths_label_neg.py`
 Adds missing labels of negative `token_paths` based on `paths` labels.
 
