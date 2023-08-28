@@ -61,7 +61,31 @@ def test_model(conn: sqlite3.Connection, results_path: str, model: str):
   accuracy = (tp + tn) / (pos + neg)
   precision = tp / (tp + fp)
   recall = tp / pos
-  f1 = 2 * precision * recall / (precision + recall)
+
+  if pos + neg == 0:
+    print(f"Why are you testing with no data?")
+    sys.exit()
+  accuracy = (tp + tn) / (pos + neg)
+
+  if tp + fp == 0:
+    print("Precision could not be calculated (no positive predictions)")
+    precision = None
+  else:
+    precision = tp / (tp + fp)
+
+  if pos == 0:
+    print("Recall could not be calculated - why are you testing with no positive samples in the set?")
+    recall = None
+  else:
+    recall = tp / pos
+
+  if precision == 0 or recall == 0:
+    f1 = 0
+  elif precision is None or recall is None:
+    f1 = None
+  else:
+    f1 = 2 * precision * recall / (precision + recall)
+  
   print(f"Accuracy: {accuracy * 100:.3f}%")
   results = {
     "pos": pos,

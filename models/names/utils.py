@@ -108,9 +108,9 @@ class NameClassifierUtils:
                   fp INTEGER NOT NULL,
                   fn INTEGER NOT NULL,
                   accuracy REAL NOT NULL,
-                  precision REAL NOT NULL,
-                  recall REAL NOT NULL,
-                  f1 REAL NOT NULL)''')
+                  precision REAL,
+                  recall REAL,
+                  f1 REAL)''')
     except Exception as ex:
       print(ex)
       sys.exit()

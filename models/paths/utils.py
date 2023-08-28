@@ -177,9 +177,9 @@ class PathsClassifierUtils:
                   fp INTEGER NOT NULL,
                   fn INTEGER NOT NULL,
                   accuracy REAL NOT NULL,
-                  precision REAL NOT NULL,
-                  recall REAL NOT NULL,
-                  f1 REAL NOT NULL)''')
+                  precision REAL,
+                  recall REAL,
+                  f1 REAL)''')
     except Exception as ex:
       print(ex)
       sys.exit()
@@ -192,9 +192,9 @@ class PathsClassifierUtils:
     fp = int(results['fp'])
     fn = int(results['fn'])
     acc = float(results['accuracy'])
-    precision = float(results['precision'])
-    recall = float(results['recall'])
-    f1 = float(results['f1'])
+    precision = float(results['precision']) if results['precision'] is not None else None
+    recall = float(results['recall']) if results['recall'] is not None else None
+    f1 = float(results['f1']) if results['f1'] is not None else None
     try:
       # sql injection yay (table names cant be passed as params)
       cur.execute(f'INSERT INTO {table} VALUES (?,?,?,?,?,?,?,?,?,?)',

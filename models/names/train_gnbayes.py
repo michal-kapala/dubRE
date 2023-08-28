@@ -10,7 +10,7 @@ HELP = 'Usage:\npython train_gnbayes.py --dbpath="<database path>"\n'
 MODEL_FILE = 'names_gnbayes.joblib'
 
 def train_naive_bayes(conn: sqlite3.Connection):
-  """Trains function name classifier using Gaussian Naive Bayes (scikit-learn) model and saves it to a file."""
+  """Trains function name classifier using Gaussian Naive Bayes model (scikit-learn) and saves it to a file."""
   cur = conn.cursor()
 
   print('Loading FastText model...')
@@ -37,11 +37,12 @@ def train_naive_bayes(conn: sqlite3.Connection):
   x_train = utils.listify(x_train['lit_vec'].to_list())
   y_train = tuple(y_train.to_list())
 
-  # scaling
+  print("Scaling data...")
   scaler = StandardScaler()
   scaler.fit(x_train)
   scaler.transform(x_train)
 
+  print('Initializing classifier model...')
   gnb = GaussianNB()
 
   print("Cross-validation (5-fold)...")

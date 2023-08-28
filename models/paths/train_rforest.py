@@ -19,7 +19,7 @@ COLUMNS = ['ref_depth',
 """Training data features."""
 
 def train_random_forest(conn: sqlite3.Connection):
-  """Trains cross-reference path Random Forest classifier (scikit-learn) on full dataset and saves it to a file."""
+  """Trains cross-reference path Random Forest classifier (scikit-learn) and saves it to a file."""
   cur = conn.cursor()
   start = datetime.now()
 
@@ -48,7 +48,6 @@ def train_random_forest(conn: sqlite3.Connection):
   x_train = utils.listify(x_train)
   y_train = tuple(y_train.to_list())
 
-  # scaling
   print("Scaling data...")
   scaler = StandardScaler()
   scaler.fit(x_train)
