@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 _COLUMNS = ['literal', 'is_name']
 _TEST_SIZE_RATIO = 0.2
-"""Desired percentage of test samples in the dataset."""
+"""Desired percentage of test samples in the dataset. Needs to stay the same across all evaluated models."""
 
 class NameClassifierUtils:
   """Utility functions for function name classifiers."""

@@ -13,7 +13,7 @@ _COLUMNS = [
   'instructions'
   ]
 _TEST_SIZE_RATIO = 0.2
-"""Desired percentage of test samples in the dataset."""
+"""Desired percentage of test samples in the dataset. Needs to stay the same across all evaluated models."""
 
 class PathsClassifierUtils:
   """Utility functions for cross-reference paths classifiers."""
@@ -139,7 +139,7 @@ class PathsClassifierUtils:
 
   @staticmethod
   def split_dataset(features: pd.DataFrame, labels: pd.DataFrame) -> tuple:
-    """Parameterized wrapper for `sklearn.model_selection.train_test_split` for classifier training."""
+    """Wrapper for `sklearn.model_selection.train_test_split` for classifier training and testing."""
     # Deterministic shuffle
     x_train, x_test, y_train, y_test = train_test_split(features, labels, test_size=_TEST_SIZE_RATIO, random_state=0)
     return x_train, x_test, y_train, y_test

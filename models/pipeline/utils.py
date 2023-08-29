@@ -13,14 +13,17 @@ _TPATH_COLUMNS = [
   'nb_strings',
   'nb_referees',
   'instructions']
+_TOKEN_COLUMNS = ['literal', 'is_name']
+_TEST_SIZE_RATIO = 0.2
+"""Desired percentage of test samples in the dataset. Needs to stay the same across all evaluated models."""
 
 class PipelineUtils:
   """Utility functions for pipeline simulation."""
   @staticmethod
-  def query_data(cur: sqlite3.Cursor) -> list[tuple]:
+  def query_data(cur: sqlite3.Cursor) -> pd.DataFrame:
     """Returns paths/token paths/funcs join for the pipeline."""
     try:
-      cur.execute('''SELECT p.binary, p.func_addr, ref_depth, is_upward, token_literal, names_func, nb_referrers, nb_strings, nb_referees, instructions FROM (SELECT binary, local_id, func_addr, ref_depth, is_upward FROM paths WHERE to_name = 1 GROUP BY func_addr) AS p
+      cur.execute('''SELECT p.binary, p.func_addr, ref_depth, is_upward, token_literal, names_func, nb_referrers, nb_strings, nb_referees, instructions FROM (SELECT binary, local_id, func_addr, ref_depth, is_upward FROM paths WHERE to_name IS NOT NULL) AS p
                     JOIN token_paths AS tp ON p.binary = tp.binary AND local_id = local_path_id
                     JOIN funcs ON funcs.binary = p.binary AND funcs.func_addr = p.func_addr
                     WHERE names_func IS NOT NULL''')
@@ -30,21 +33,61 @@ class PipelineUtils:
       print(ex)
       sys.exit()
 
-    return pd.DataFrame(data, columns=_TPATH_COLUMNS)
+    # test dataset of paths models
+    # use `seen_tokens.py` to calculate percentage of token data used in name classifiers' training
+    _, test_data = train_test_split(data, test_size=_TEST_SIZE_RATIO, random_state=0)
+
+    return pd.DataFrame(test_data, columns=_TPATH_COLUMNS)
 
   @staticmethod
-  def query_paths(cur: sqlite3.Cursor, func_addr: int, binary: str) -> pd.DataFrame:
-    """Returns all labeled paths of a function."""
+  def query_tokens(cur: sqlite3.Cursor) -> pd.DataFrame:
+    """Returns all labelled tokens from the dataset (from `models/names/utils.py`)."""
     try:
-      cur.execute('SELECT local_id, ref_depth, is_upward, FROM paths WHERE func_addr = ? AND binary = ? AND to_name IS NOT NULL',
-                  (func_addr, binary))
-      paths = cur.fetchall()
+      cur.execute('SELECT literal, is_name FROM tokens WHERE is_name IS NOT NULL')
+      tokens = cur.fetchall()
     # 'no such table: x'
     except sqlite3.OperationalError as ex:
       print(ex)
       sys.exit()
 
-    return 
+    return pd.DataFrame(data=tokens, columns=_TOKEN_COLUMNS)
+
+  @staticmethod
+  def query_pdb(cur: sqlite3.Cursor) -> pd.DataFrame:
+    """Returns all PDB function names from the dataset (from `models/names/utils.py`)."""
+    try:
+      cur.execute('SELECT literal FROM pdb')
+      pdb = cur.fetchall()
+    # 'no such table: x'
+    except sqlite3.OperationalError as ex:
+      print(ex)
+      sys.exit()
+    df = pd.DataFrame(data=pdb, columns=['literal'], index=range(len(pdb)))
+    
+    df['is_name'] = ''
+    for idx in df.index:
+      df.at[idx, 'is_name'] = 1
+
+    return df
+
+  @staticmethod
+  def balance_dataset(tokens_df: pd.DataFrame, pdb_df: pd.DataFrame) -> pd.DataFrame:
+    """Returns a complete dataset balanced with PDB positives."""
+    # calculate the nb of missing positives
+    nb_neg = tokens_df[tokens_df['is_name'] == 0].shape[0]
+    nb_pos = tokens_df.shape[0] - nb_neg
+    nb_missing_pos = nb_neg - nb_pos
+
+    # deterministic shuffle
+    balancing_pos, _ = train_test_split(pdb_df, train_size=nb_missing_pos, random_state=0)
+    return pd.concat([tokens_df, balancing_pos], ignore_index=True)
+
+  @staticmethod
+  def split_dataset(df: pd.DataFrame) -> tuple:
+    """Wrapper for `sklearn.model_selection.train_test_split`."""
+    # Deterministic shuffle
+    x_train, x_test = train_test_split(df, test_size=_TEST_SIZE_RATIO, random_state=0)
+    return x_train, x_test
 
   @staticmethod
   def get_model_path(filename: str) -> str:
