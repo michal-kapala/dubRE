@@ -55,8 +55,8 @@ def train_neural_network(conn: sqlite3.Connection):
   scaler.transform(x_train)
 
   print("Cross-validation (5-fold)...")
-  scores = cross_val_score(mlp, X=x_train, y=y_train)
-  print("Accuracy: %0.3f" % (scores.mean()))
+  scores = cross_val_score(mlp, X=x_train, y=y_train, scoring='f1')
+  print("F1: %0.3f" % (scores.mean()))
   print("Std_dev: %0.3f" % (scores.std()))
 
   print("Training classifier...")
