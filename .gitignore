@@ -2,3 +2,4 @@
 *.env
 mergedb.json
 *.joblib
+*.zip
