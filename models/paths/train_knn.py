@@ -7,8 +7,8 @@ from joblib import dump
 from utils import PathsClassifierUtils as utils
 
 
-HELP = 'Usage:\npython train_knn.py --dbpath="<database path>"\n'
-MODEL_FILE = 'paths_knn.joblib'
+HELP = 'Usage:\npython train_knn.py --dbpath="<database path> --k=<k neighbors parameter>"\n'
+MODEL_FILE = 'paths_@knn.joblib'
 COLUMNS = ['ref_depth',
            'is_upward',
            'nb_referrers',
@@ -18,7 +18,7 @@ COLUMNS = ['ref_depth',
            'lit_vec']
 """Training data features."""
 
-def train_nearest_neighbours(conn: sqlite3.Connection):
+def train_nearest_neighbours(conn: sqlite3.Connection, k: int):
   """Trains cross-reference path k-Nearest Neighbors classifier (scikit-learn) and saves it to a file."""
   cur = conn.cursor()
   start = datetime.now()
@@ -41,7 +41,7 @@ def train_nearest_neighbours(conn: sqlite3.Connection):
 
   print('Initializing classifier model...')
   # 5 neighbors is the default
-  knn = KNeighborsClassifier(n_neighbors=5)
+  knn = KNeighborsClassifier(n_neighbors=k)
 
   print("Splitting datasets...")
   x_train, _, y_train, _ = utils.split_dataset(data, labels)
@@ -61,7 +61,7 @@ def train_nearest_neighbours(conn: sqlite3.Connection):
 
   print("Training classifier...")
   knn.fit(X=x_train, y=y_train)
-  file_path = utils.get_model_path(MODEL_FILE)
+  file_path = utils.get_model_path(MODEL_FILE.replace("@", str(k)))
   dump(knn, file_path)
   print(f'Model saved to {file_path}')
   print(f'Start time:\t{start}')
@@ -69,21 +69,30 @@ def train_nearest_neighbours(conn: sqlite3.Connection):
 
 def main(argv):
   db_path = ""
-  opts, _ = getopt.getopt(argv,"hd:",["dbpath="])
+  k = 0
+  opts, _ = getopt.getopt(argv,"hdk:",["dbpath=", "k="])
   for opt, arg in opts:
     if opt == '-h':
       print(HELP)
       sys.exit()
     elif opt in ("-d", "--dbpath"):
       db_path = arg
+    elif opt in ("-k", "--k"):
+      try:
+        k = int(arg)
+      except Exception as ex:
+        print("Invalid k parameter supplied")
+        sys.exit()
 
   if db_path == "":
     raise Exception(f"SQLite database path required\n{HELP}")
   if not os.path.isfile(db_path):
     raise Exception(f"Database not found at {db_path}")
+  if k < 1 or k > 10:
+    raise Exception("The allowed range for k parameter is [1,10]")
   
   conn = sqlite3.connect(db_path)
-  train_nearest_neighbours(conn)
+  train_nearest_neighbours(conn, k)
   conn.close()
 
 if __name__ == "__main__":

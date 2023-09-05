@@ -89,7 +89,8 @@ def test_model(conn: sqlite3.Connection, results_path: str, model: str):
     else:
       f1 = 2 * precision * recall / (precision + recall)
 
-  print(f"Accuracy: {accuracy * 100:.3f}%")
+  log = "F1 could not be computed" if f1 is None else f"F1: {f1:.3f}"
+  print(log)
   results = {
     "pos": pos,
     "neg": neg,
