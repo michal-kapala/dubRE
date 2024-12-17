@@ -57,7 +57,7 @@ def get_nb_xref_from(ea):
   return len(unique)
 
 def get_nb_strings(ea):
-  """Returns the number of function's string xrefs."""
+  """Returns the number of function's unique string xrefs."""
   func = sark.Function(ea)
   unique = []
   
